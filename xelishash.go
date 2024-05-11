@@ -91,11 +91,14 @@ func XelisHash(input []byte, scratch_pad *ScratchPad) ([32]byte, error) {
 				// Split the loop in two to avoid checking k == index
 				sum := slots[index]
 				offset := j * SLOT_LENGTH
-				for k := 0; k < SLOT_LENGTH; k++ {
-					if k == index {
-						continue
+				for k := 0; k < index; k++ {
+					if slots[k]>>31 == 0 {
+						sum = sum + small_pad[offset+k]
+					} else {
+						sum = sum - small_pad[offset+k]
 					}
-
+				}
+				for k := index + 1; k < SLOT_LENGTH; k++ {
 					if slots[k]>>31 == 0 {
 						sum = sum + small_pad[offset+k]
 					} else {
