@@ -3,6 +3,7 @@ package xelishash
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func testInput(input []byte, expected_hash [32]byte) error {
@@ -49,15 +50,22 @@ func TestHash(t *testing.T) {
 
 }
 
+const nanosecond = 1000 * 1000 * 1000
+
 func BenchmarkHash(b *testing.B) {
 	var scratch_pad ScratchPad
 
 	var input = make([]byte, 200)
 
 	b.Log(b.N)
+	t := time.Now()
 
-	for i := 0; i < b.N*200; i++ {
+	for i := 0; i < b.N; i++ {
 		XelisHash(input, &scratch_pad)
-
 	}
+
+	deltaT := float64(time.Since(t).Nanoseconds()) / nanosecond
+
+	b.Log("H/s:", float64(b.N)/deltaT)
+
 }

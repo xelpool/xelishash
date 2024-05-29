@@ -137,7 +137,7 @@ func XelisHash(input []byte, scratch_pad *ScratchPad) ([32]byte, error) {
 		copy(block[:8], toLE(mem_b))
 		copy(block[8:], toLE(mem_a))
 
-		block = aesRound2(block, key)
+		aesRound2(&block, &key)
 
 		hash1 := fromLE(block[0:8])
 		hash2 := mem_a ^ mem_b

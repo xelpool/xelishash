@@ -15,9 +15,9 @@ func scratchpadToSmallpad(s *ScratchPad) *[MEMORY_SIZE * 2]uint32 {
 
 }
 
-func aesConv(d [16]byte) [4]uint32 {
-	return *(*[4]uint32)(unsafe.Pointer(&d))
+func aesConv(d *[16]byte) *[4]uint32 {
+	return (*[4]uint32)(unsafe.Pointer(d))
 }
-func aesConv2(d [4]uint32) [16]byte {
-	return *(*[16]byte)(unsafe.Pointer(&d))
+func aesConv2(d *[4]uint32) *[16]byte {
+	return (*[16]byte)(unsafe.Pointer(&d))
 }

@@ -1,10 +1,10 @@
 package xelishash
 
-func aesRound2(a [16]byte, b [16]byte) [16]byte {
+func aesRound2(a *[16]byte, b *[16]byte) *[16]byte {
 	return aesConv2(aesRound(aesConv(a), aesConv(b)))
 }
 
-func aesRound(X, key [4]uint32) [4]uint32 {
+func aesRound(X, key *[4]uint32) *[4]uint32 {
 	// software AES implementation
 	var Y [4]uint32
 
