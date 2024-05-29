@@ -75,9 +75,15 @@ func XelisHash(input []byte, scratch_pad *ScratchPad) ([32]byte, error) {
 
 	for i := 0; i < ITERS; i++ {
 		for j := 0; j < len(small_pad)/SLOT_LENGTH; j++ {
-			// Initialize indices
+			// Initialize indices and precompute the total sum of small pad
+			var total_sum uint32 = 0
 			for k := 0; k < SLOT_LENGTH; k++ {
 				indices[k] = uint16(k)
+				if slots[k]>>31 == 0 {
+					total_sum += small_pad[j*SLOT_LENGTH+k]
+				} else {
+					total_sum -= small_pad[j*SLOT_LENGTH+k]
+				}
 			}
 
 			for slot_idx := SLOT_LENGTH - 1; slot_idx >= 0; slot_idx-- {
@@ -86,29 +92,21 @@ func XelisHash(input []byte, scratch_pad *ScratchPad) ([32]byte, error) {
 				index := int(indices[index_in_indices])
 				indices[index_in_indices] = indices[slot_idx]
 
-				// THIS IS THE MOST PERFORMANCE-CRITICAL SECTION
-
-				// Split the loop in two to avoid checking k == index
-				sum := slots[index]
-				offset := j * SLOT_LENGTH
-				for k := 0; k < index; k++ {
-					pad := small_pad[offset+k]
-					if slots[k]>>31 == 0 {
-						sum = sum + pad
-					} else {
-						sum = sum - pad
-					}
-				}
-				for k := index + 1; k < SLOT_LENGTH; k++ {
-					pad := small_pad[offset+k]
-					if slots[k]>>31 == 0 {
-						sum = sum + pad
-					} else {
-						sum = sum - pad
-					}
+				local_sum := total_sum
+				s1 := int32(slots[index] >> 31)
+				pad_value := small_pad[j*SLOT_LENGTH+index]
+				if s1 == 0 {
+					local_sum -= pad_value
+				} else {
+					local_sum += pad_value
 				}
 
-				slots[index] = sum
+				// Apply the sum to the slot
+				slots[index] += local_sum
+
+				// Update the total sum
+				s2 := int32(slots[index] >> 31)
+				total_sum -= 2 * small_pad[j*SLOT_LENGTH+index] * uint32(-s1+s2)
 			}
 		}
 	}
