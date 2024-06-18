@@ -64,11 +64,10 @@ func stage_1_v2(input []byte, scratch_pad *[MEMORY_SIZE_V2 * 8]byte) {
 		}
 
 		// Calculate the remaining size and how much to generate this iteration
-		remaining_output_size := OUTPUT_SIZE_V2 - output_offset
+		current_output_size := OUTPUT_SIZE_V2 - output_offset
 		// Remaining chunks
 		chunks_left := num_chunks - chunk_index
-		chunk_output_size := remaining_output_size / chunks_left
-		current_output_size := remaining_output_size
+		chunk_output_size := current_output_size / chunks_left
 		if current_output_size > chunk_output_size {
 			current_output_size = chunk_output_size
 		}
@@ -116,8 +115,8 @@ func stage_3(scratch_pad *ScratchPadV2) {
 		mem_a := mem_buffer_a[int(addr_a%BUFFER_SIZE_V2)]
 		mem_b := mem_buffer_b[int(addr_b%BUFFER_SIZE_V2)]
 
-		copy(block[:8], (*toBytesLE(&mem_b))[:])
-		copy(block[8:], (*toBytesLE(&mem_a))[:])
+		copy(block[:8], (toBytesLE(&mem_b))[:])
+		copy(block[8:], (toBytesLE(&mem_a))[:])
 
 		aesRound2(&block, &key)
 
@@ -128,7 +127,7 @@ func stage_3(scratch_pad *ScratchPadV2) {
 
 		for j := 0; j < BUFFER_SIZE_V2; j++ {
 			a := mem_buffer_a[int(result%BUFFER_SIZE_V2)]
-			b := mem_buffer_b[int(^bits.RotateLeft64(result, -int(uint32(r)))%BUFFER_SIZE_V2)]
+			b := mem_buffer_b[int(^bits.RotateLeft64(result, -r)%BUFFER_SIZE_V2)]
 			var c uint64
 			if r < BUFFER_SIZE_V2 {
 				c = mem_buffer_a[r]
@@ -143,13 +142,11 @@ func stage_3(scratch_pad *ScratchPadV2) {
 
 			var v uint64
 
-			// instruction := bits.RotateLeft64(result, int(uint32(c))) & 0xf
-
-			switch bits.RotateLeft64(result, int(uint32(c))) & 0xf {
+			switch bits.RotateLeft64(result, int(c)) & 0xf {
 			case 0:
-				v = result ^ bits.RotateLeft64(c, int(uint32(i*j))) ^ b
+				v = result ^ bits.RotateLeft64(c, int(i*j)) ^ b
 			case 1:
-				v = result ^ bits.RotateLeft64(c, -int(uint32(i*j))) ^ a
+				v = result ^ bits.RotateLeft64(c, -int(i*j)) ^ a
 			case 2:
 				v = result ^ a ^ b ^ c
 			case 3:
@@ -171,7 +168,7 @@ func stage_3(scratch_pad *ScratchPadV2) {
 				v = result ^ (t1.Mod64(c | 1))
 			case 11:
 				t1 := uint128.Uint128{Hi: b, Lo: c}
-				t2 := uint128.Uint128{Hi: bits.RotateLeft64(result, int(uint32(r))), Lo: a | 2}
+				t2 := uint128.Uint128{Hi: bits.RotateLeft64(result, r), Lo: a | 2}
 				v = result ^ t1.Mod(t2).Lo
 			case 12:
 				t1 := uint128.Uint128{Hi: c, Lo: a}
@@ -187,22 +184,22 @@ func stage_3(scratch_pad *ScratchPadV2) {
 				}
 			case 14:
 				t1 := uint128.Uint128{Hi: b, Lo: a}
-				t2 := uint128.From64(c)
-				v = result ^ t1.MulWrap(t2).Rsh(64).Lo
+				t2 := uint128.Uint128{Lo: c}
+				v = result ^ t1.MulWrap(t2).Hi
 			case 15:
 				t1 := uint128.Uint128{Hi: a, Lo: c}
 				t2 := uint128.Uint128{
 					Hi: bits.RotateLeft64(result, -r),
 					Lo: b,
 				}
-				v = result ^ t1.MulWrap(t2).Rsh(64).Lo
+				v = result ^ t1.MulWrap(t2).Hi
 			}
 
 			result = bits.RotateLeft64(v, 1)
 
 			t := mem_buffer_a[BUFFER_SIZE_V2-j-1] ^ result
 			mem_buffer_a[BUFFER_SIZE_V2-j-1] = t
-			mem_buffer_b[j] ^= bits.RotateLeft64(t, -int(uint32(result)))
+			mem_buffer_b[j] ^= bits.RotateLeft64(t, -int(result))
 		}
 		addr_a = result
 		addr_b = isqrt(result)

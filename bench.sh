@@ -1,1 +1,1 @@
-go test -v -bench=. -test.benchtime 20s -benchmem
+go test -v -bench=. -test.benchtime 10s
