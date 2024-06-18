@@ -55,7 +55,7 @@ func stage_1(int_input *[KECCAK_WORDS]uint64, scratch_pad *ScratchPad, a0 uint64
 	}
 }
 
-func XelisHash(input []byte, scratch_pad *ScratchPad) ([32]byte, error) {
+func XelisHash(input []byte, scratch_pad *ScratchPad) [32]byte {
 	var int_input *[KECCAK_WORDS]uint64 = intInput([BYTES_ARRAY_INPUT]byte(input[:BYTES_ARRAY_INPUT]))
 
 	// stage 1
@@ -198,5 +198,5 @@ func XelisHash(input []byte, scratch_pad *ScratchPad) ([32]byte, error) {
 		}
 	}
 
-	return final_result, nil
+	return final_result
 }

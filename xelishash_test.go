@@ -8,10 +8,7 @@ import (
 
 func testInput(input []byte, expected_hash [32]byte) error {
 	var scratch_pad ScratchPad
-	hash, err := XelisHash(input, &scratch_pad)
-	if err != nil {
-		return err
-	}
+	hash := XelisHash(input, &scratch_pad)
 
 	if hash != expected_hash {
 		return fmt.Errorf("hash %x does not match expected hash %x", hash, expected_hash)

@@ -21,3 +21,7 @@ func aesConv(d *[16]byte) *[4]uint32 {
 func aesConv2(d *[4]uint32) *[16]byte {
 	return (*[16]byte)(unsafe.Pointer(&d))
 }
+
+func toBytesLE(n *uint64) *[8]byte {
+	return (*[8]byte)(unsafe.Pointer(n))
+}
