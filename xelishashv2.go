@@ -5,8 +5,8 @@ import (
 	"math/bits"
 	"unsafe"
 
+	"github.com/chocolatkey/chacha8"
 	"github.com/zeebo/blake3"
-	"golang.org/x/crypto/chacha20"
 	"lukechampine.com/uint128"
 )
 
@@ -36,7 +36,7 @@ type ScratchPadV2 [MEMORY_SIZE_V2]uint64
 
 // Stage 1 of the hashing algorithm
 // This stage is responsible for generating the scratch pad
-// The scratch pad is generated using Chacha20 with a custom nonce
+// The scratch pad is generated using Chacha8 with a custom nonce
 // that is updated after each iteration
 func stage_1_v2(input []byte, scratch_pad *[MEMORY_SIZE_V2 * 8]byte) {
 	output_offset := 0
@@ -49,16 +49,17 @@ func stage_1_v2(input []byte, scratch_pad *[MEMORY_SIZE_V2 * 8]byte) {
 	num_chunks := (len(input) + CHUNK_SIZE_V2 - 1) / CHUNK_SIZE_V2
 
 	for chunk_index := 0; chunk_index < num_chunks; chunk_index++ {
-		// Pad the chunk to 32 bytes if it is shorter
 		chunk := input[chunk_index*CHUNK_SIZE_V2:]
-		if len(chunk) > CHUNK_SIZE_V2 {
-			chunk = chunk[:CHUNK_SIZE_V2]
-		}
 
-		key := [CHUNK_SIZE_V2]byte{}
-		copy(key[:CHUNK_SIZE_V2], chunk)
+		// Concatenate the input hash with the chunk
+		tmp := [HASH_SIZE * 2]byte{}
+		copy(tmp[0:HASH_SIZE], input_hash[:])
+		copy(tmp[HASH_SIZE:], chunk)
 
-		cipher, err := chacha20.NewUnauthenticatedCipher(key[:], nonce[:])
+		// Hash it to not trust the input
+		input_hash = blake3.Sum256(tmp[:])
+
+		cipher, err := chacha8.New(input_hash[:], nonce[:])
 		if err != nil {
 			panic(err)
 		}
@@ -72,14 +73,10 @@ func stage_1_v2(input []byte, scratch_pad *[MEMORY_SIZE_V2 * 8]byte) {
 			current_output_size = chunk_output_size
 		}
 
-		temp_output := make([]byte, current_output_size)
-
 		// Apply the keystream to the output
-		cipher.XORKeyStream(temp_output, temp_output)
-
-		// Copy the output to the scratch pad
 		offset := chunk_index * current_output_size
-		copy(scratch_pad[offset:offset+current_output_size], temp_output)
+		part := scratch_pad[offset : offset+current_output_size]
+		cipher.KeyStream(part)
 
 		output_offset += current_output_size
 
@@ -90,7 +87,7 @@ func stage_1_v2(input []byte, scratch_pad *[MEMORY_SIZE_V2 * 8]byte) {
 		}
 
 		// Copy the new nonce
-		copy(nonce[:], temp_output[nonce_start:])
+		copy(nonce[:], part[nonce_start:])
 	}
 }
 
